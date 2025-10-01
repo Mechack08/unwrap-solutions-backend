@@ -1,0 +1,224 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  username    String   @unique
+  firstName   String
+  lastName    String
+  bio         String?
+  role        Role     @default(READER)
+  status      UserStatus @default(ACTIVE)
+  isVerified  Boolean  @default(false)
+  password    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Avatar relation
+  avatarId    String?  @unique
+  avatar      Media?   @relation("UserAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
+
+  // Relations
+  posts       Post[]
+  comments    Comment[]
+  postViews   PostView[]
+  uploadedMedia Media[] @relation("MediaUploader")
+
+  @@map("users")
+}
+
+model Post {
+  id            String      @id @default(cuid())
+  title         String
+  slug          String      @unique
+  excerpt       String?
+  content       String
+  status        PostStatus  @default(DRAFT)
+  publishedAt   DateTime?
+  scheduledAt   DateTime?
+  isFeatured    Boolean     @default(false)
+  viewCount     Int         @default(0)
+  
+  // SEO fields
+  metaTitle     String?
+  metaDescription String?
+  metaKeywords  String?
+  
+  // Timestamps
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Relations
+  authorId      String
+  author        User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  categoryId    String
+  category      Category    @relation(fields: [categoryId], references: [id])
+  
+  // Media relations
+  featuredImageId String?
+  featuredImage   Media?   @relation("PostFeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
+  gallery         Media[]  @relation("PostGallery")
+  
+  tags          PostTag[]
+  comments      Comment[]
+  postViews     PostView[]
+
+  @@map("posts")
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  image       String?
+  color       String?    // For UI theming
+  parentId    String?
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  posts       Post[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  color       String?   // For UI theming
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  posts       PostTag[]
+
+  @@map("tags")
+}
+
+model PostTag {
+  id     String @id @default(cuid())
+  postId String
+  tagId  String
+
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, tagId])
+  @@map("post_tags")
+}
+
+model Comment {
+  id        String        @id @default(cuid())
+  content   String
+  status    CommentStatus @default(PENDING)
+  parentId  String?
+  parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[]     @relation("CommentReplies")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // Relations
+  postId    String
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?         @relation(fields: [authorId], references: [id])
+  
+  // Guest comment fields (if author is null)
+  guestName  String?
+  guestEmail String?
+
+  @@map("comments")
+}
+
+model PostView {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String?
+  ipAddress String
+  userAgent String?
+  viewedAt  DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@unique([postId, ipAddress])
+  @@map("post_views")
+}
+
+model Media {
+  id          String    @id @default(cuid())
+  filename    String
+  originalName String
+  mimetype    String
+  size        Int
+  path        String
+  url         String
+  alt         String?
+  caption     String?
+  type        MediaType @default(IMAGE)
+  uploadedBy  String?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  uploader         User?  @relation("MediaUploader", fields: [uploadedBy], references: [id], onDelete: SetNull)
+  featuredInPosts  Post[] @relation("PostFeaturedImage")
+  galleryPosts     Post[] @relation("PostGallery")
+  userAvatar       User?  @relation("UserAvatar")
+
+  @@map("media")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  EDITOR
+  AUTHOR
+  READER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  SPAM
+  REJECTED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  AVATAR
+}
+
