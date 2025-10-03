@@ -22,17 +22,4 @@ async function startServer() {
   }
 }
 
-// // Graceful shutdown
-// process.on("SIGINT", async () => {
-//   console.log("\n🔄 Shutting down gracefully...");
-//   await prisma.$disconnect();
-//   process.exit(0);
-// });
-
-// process.on("SIGTERM", async () => {
-//   console.log("\n🔄 Shutting down gracefully...");
-//   await prisma.$disconnect();
-//   process.exit(0);
-// });
-
 startServer();

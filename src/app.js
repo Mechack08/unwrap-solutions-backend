@@ -10,7 +10,7 @@ const { errorHandler } = require("./middleware/errorHandler");
 const { logger } = require("./utils/logger");
 
 // Import routes
-// const authRoutes = require("./routes/auth");
+const authRoutes = require("./routes/auth");
 // const postRoutes = require("./routes/posts");
 // const categoryRoutes = require("./routes/categories");
 // const tagRoutes = require("./routes/tags");
@@ -286,7 +286,7 @@ Policy: https://unwrapsolutions.dev/security-policy`);
 });
 
 // API routes with appropriate rate limiting
-// app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 // app.use("/api/posts", postRoutes);
 // app.use("/api/categories", categoryRoutes);
 // app.use("/api/tags", tagRoutes);
